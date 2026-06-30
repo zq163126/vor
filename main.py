@@ -1,5 +1,4 @@
 import os
-import requests
 import time
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -27,7 +26,6 @@ def main():
         options.add_argument("--headless")
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
-        # 确保窗口大小足够，防止某些按钮因响应式布局而无法点击
         options.add_argument("--window-size=1920,1080")
     
     driver = webdriver.Chrome(options=options)
@@ -48,32 +46,26 @@ def main():
         wait.until(EC.presence_of_element_located((By.ID, "email"))).send_keys(os.getenv("USER_EMAIL"))
         driver.find_element(By.ID, "password").send_keys(os.getenv("USER_PASSWORD"))
         
-        # 4. 点击提交并等待登录动作响应
+        # 4. 点击提交
         driver.find_element(By.XPATH, "//button[contains(., 'Sign In')]").click()
         
-        # 强制等待，因为 API 的鉴权可能依赖于登录请求完成后的 Redirect
-        # 如果登录成功，通常页面会跳转，我们给 10 秒缓冲
-        time.sleep(10)
-        driver.save_screenshot("after_login.png")
-
-        # 5. 读取 STATUS 信息 (判定登录成功的唯一标准)
-        driver.get("https://api.vortexa.cloud/api/hosting/free/status")
+        # 5. 判定登录成功：检查特定元素
+        # 使用 XPath 精确匹配那段文字
+        target_xpath = "//p[contains(text(), 'Manage your servers, invoices and deployments all in one place.')]"
         
-        # 等待页面加载（有时返回的是纯文本或简单的 JSON 文本）
-        time.sleep(2)
-        
-        # 获取页面内容
         try:
-            content = driver.find_element(By.TAG_NAME, "pre").text
+            # 给页面一点加载时间，等待该元素出现
+            wait.until(EC.visibility_of_element_located((By.XPATH, target_xpath)))
+            success_msg = "登录成功：检测到仪表盘特征元素。"
+            print(success_msg)
         except:
-            content = driver.page_source
+            success_msg = "登录失败或超时：未检测到特征元素。"
+            print(success_msg)
+
+        # 6. 截图并发送通知
+        driver.save_screenshot("result.png")
+        send_telegram(success_msg, "result.png")
         
-        # 6. 发送最终判断结果
-        send_telegram(f"API 返回数据:\n{content}", "after_login.png")
-        print("API 数据读取完成并已发送")
-        
-    except Exception as e:
-        print(f"执行出错: {e}")
     finally:
         driver.quit()
 
