@@ -6,7 +6,6 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException
 
 def send_telegram(message, photo_path=None):
     token = os.getenv("TG_BOT_TOKEN")
@@ -28,53 +27,53 @@ def main():
         options.add_argument("--headless")
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
+        # 确保窗口大小足够，防止某些按钮因响应式布局而无法点击
+        options.add_argument("--window-size=1920,1080")
     
     driver = webdriver.Chrome(options=options)
-    # 增加隐式等待基础配置
-    driver.implicitly_wait(10)
+    wait = WebDriverWait(driver, 15)
 
     try:
+        # 1. 进入登录页
         driver.get("https://www.vortexa.cloud/dashboard")
-        wait = WebDriverWait(driver, 20)
         
-        # 1. 处理 Cookie 弹窗
+        # 2. 点击 Cookie 弹窗
         try:
             cookie_btn = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[contains(text(), 'Accept All')]")))
             cookie_btn.click()
         except:
             pass
 
-        # 2. 输入信息
+        # 3. 填写登录信息
         wait.until(EC.presence_of_element_located((By.ID, "email"))).send_keys(os.getenv("USER_EMAIL"))
         driver.find_element(By.ID, "password").send_keys(os.getenv("USER_PASSWORD"))
-
-        # 3. 点击登录
-        submit_btn = driver.find_element(By.XPATH, "//button[contains(., 'Sign In')]")
-        submit_btn.click()
-
-        # 4. 关键：等待登录完成
-        # 登录成功后，页面通常会跳转，或者原页面的 "Sign In" 按钮消失/转圈停止
-        # 我们等待 URL 发生变化，或者等待页面进入登录后的状态
-        print("正在等待登录完成...")
-        time.sleep(5) # 强制给一点响应时间
         
-        # 等待直到登录按钮从 DOM 中消失或不可见，说明请求已提交并跳转
-        wait.until(EC.invisibility_of_element_located((By.XPATH, "//button[contains(., 'Sign In')]")))
+        # 4. 点击提交并等待登录动作响应
+        driver.find_element(By.XPATH, "//button[contains(., 'Sign In')]").click()
         
-        # 额外等待跳转，确保 Cookie 已经写入
-        wait.until(lambda d: d.current_url != "https://www.vortexa.cloud/dashboard")
-        
-        driver.save_screenshot("screenshot.png")
+        # 强制等待，因为 API 的鉴权可能依赖于登录请求完成后的 Redirect
+        # 如果登录成功，通常页面会跳转，我们给 10 秒缓冲
+        time.sleep(10)
+        driver.save_screenshot("after_login.png")
 
-        # 5. 登录后获取状态
+        # 5. 读取 STATUS 信息 (判定登录成功的唯一标准)
         driver.get("https://api.vortexa.cloud/api/hosting/free/status")
-        content = driver.find_element(By.TAG_NAME, "pre").text
         
-        send_telegram(f"登录成功，获取状态:\n{content}", "screenshot.png")
+        # 等待页面加载（有时返回的是纯文本或简单的 JSON 文本）
+        time.sleep(2)
+        
+        # 获取页面内容
+        try:
+            content = driver.find_element(By.TAG_NAME, "pre").text
+        except:
+            content = driver.page_source
+        
+        # 6. 发送最终判断结果
+        send_telegram(f"API 返回数据:\n{content}", "after_login.png")
+        print("API 数据读取完成并已发送")
         
     except Exception as e:
-        driver.save_screenshot("error.png")
-        send_telegram(f"登录出现异常: {str(e)}", "error.png")
+        print(f"执行出错: {e}")
     finally:
         driver.quit()
 
