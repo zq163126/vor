@@ -1,7 +1,7 @@
 name: Auto Login Job
 on:
-  schedule:
-    - cron: '0 0 * * *' # 每天定时运行
+ # schedule:
+ #   - cron: '0 0 * * *' # 每天定时运行
   workflow_dispatch:
 
 jobs:
