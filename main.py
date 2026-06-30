@@ -56,10 +56,10 @@ def main():
         
         try:
             wait.until(EC.visibility_of_element_located((By.XPATH, target_xpath)))
-            success_msg = "登录成功：检测到仪表盘特征元素。"
+            success_msg = "vortexa登录成功：检测到仪表盘特征元素。"
             print(success_msg)
         except Exception as e:
-            success_msg = "登录失败或超时：未检测到特征元素。"
+            success_msg = "vortexa登录失败或超时：未检测到特征元素。"
             print(success_msg)
 
         # 6. 截图并发送通知
