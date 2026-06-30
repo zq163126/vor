@@ -1,5 +1,6 @@
 import os
 import time
+import requests  # 补充了这一行导入
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
@@ -10,6 +11,7 @@ def send_telegram(message, photo_path=None):
     token = os.getenv("TG_BOT_TOKEN")
     chat_id = os.getenv("TG_CHAT_ID")
     if not token or not chat_id:
+        print("未配置 Telegram Token 或 Chat ID")
         return
     
     url = f"https://api.telegram.org/bot{token}/sendMessage"
@@ -50,15 +52,13 @@ def main():
         driver.find_element(By.XPATH, "//button[contains(., 'Sign In')]").click()
         
         # 5. 判定登录成功：检查特定元素
-        # 使用 XPath 精确匹配那段文字
         target_xpath = "//p[contains(text(), 'Manage your servers, invoices and deployments all in one place.')]"
         
         try:
-            # 给页面一点加载时间，等待该元素出现
             wait.until(EC.visibility_of_element_located((By.XPATH, target_xpath)))
             success_msg = "登录成功：检测到仪表盘特征元素。"
             print(success_msg)
-        except:
+        except Exception as e:
             success_msg = "登录失败或超时：未检测到特征元素。"
             print(success_msg)
 
