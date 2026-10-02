@@ -53,6 +53,11 @@ def main():
         
         # 5. 判定登录成功：检查特定元素
         target_xpath = "//p[contains(text(), 'Manage your servers, invoices and deployments all in one place.')]"
+
+        # 6. 进入面板页
+        time.sleep(2)
+        driver.get("https://www.vortexa.cloud/server/5878")
+       
         
         try:
             wait.until(EC.visibility_of_element_located((By.XPATH, target_xpath)))
