@@ -61,10 +61,10 @@ def main():
         
         try:
             wait.until(EC.visibility_of_element_located((By.XPATH, target_xpath)))
-            success_msg = "登录成功：检测到仪表盘特征元素。"
+            success_msg = "[Vor]登录成功：检测到仪表盘特征元素。"
             print(success_msg)
         except Exception as e:
-            success_msg = "登录失败或超时：未检测到特征元素。"
+            success_msg = "[Vor]登录失败或超时：未检测到特征元素。"
             print(success_msg)
 
         # 6. 进入面板页
@@ -74,7 +74,7 @@ def main():
 
         # 7. 截图并发送通知
         driver.save_screenshot("result.png")
-        send_telegram(f"{success_msg}\n已跳转至服务器详情页。", "result.png")
+        send_telegram(f"{success_msg}\n[Vor]已跳转至服务器详情页。", "result.png")
         
     finally:
         driver.quit()
