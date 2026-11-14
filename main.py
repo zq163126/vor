@@ -1,7 +1,7 @@
 import os
 import time
 import requests
-from seleniumwire import webdriver  # 注意这里使用的是 seleniumwire 的 webdriver
+from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -25,50 +25,51 @@ def send_telegram(message, photo_path=None):
 def main():
     options = Options()
     
+    # 强制启用 SOCKS5 代理
+    proxy_server = "socks5://127.0.0.1:10808"
+    options.add_argument(f'--proxy-server={proxy_server}')
+    
     if os.getenv("GITHUB_ACTIONS"):
-        options.add_argument("--headless")
+        options.add_argument("--headless=new") # 使用较新的无头模式
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
+        options.add_argument("--disable-blink-features=AutomationControlled") # 关键：隐藏自动化特征
+        options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
         options.add_argument("--window-size=1920,1080")
     
-    # 【核心改动】使用 selenium-wire 的 options 强制绑定 SOCKS5 代理
-    # 如果代理需要账号密码，格式为：socks5://user:pass@127.0.0.1:10808
-    proxy_options = {
-        'proxy': {
-            'http': 'socks5://127.0.0.1:10808',
-            'https': 'socks5://127.0.0.1:10808',
-            'no_proxy': 'localhost,127.0.0.1'
-        }
-    }
-    
-    # 传入 seleniumwire 的 driver，并带上 proxy_options
-    driver = webdriver.Chrome(options=options, seleniumwire_options=proxy_options)
+    driver = webdriver.Chrome(options=options)
     wait = WebDriverWait(driver, 20)
 
     try:
-        # 1. 进入登录页
+        # 1. 【新增】先访问 IP 检查网站，验证当前代理是否生效
+        driver.get("https://api.ipify.org")
+        time.sleep(2)
+        ip_address = driver.find_element(By.TAG_NAME, "body").text
+        print(f"当前浏览器出口 IP: {ip_address}")
+        send_telegram(f"【IP 检测】当前浏览器出口 IP 为: {ip_address}")
+
+        # 2. 进入登录页
         driver.get("https://www.vortexa.cloud/dashboard")
         
-        # 检查是否成功加载，截图并通过 TG 确认
         time.sleep(3)
         driver.save_screenshot("init_load.png")
-        send_telegram("【排查】使用 Selenium-Wire 代理后，刚打开网站时的截图：", "init_load.png")
+        send_telegram("【排查】访问目标网站初始截图：", "init_load.png")
 
-        # 2. 点击 Cookie 弹窗
+        # 3. 点击 Cookie 弹窗
         try:
             cookie_btn = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[contains(text(), 'Accept All')]")))
             cookie_btn.click()
         except:
             pass
 
-        # 3. 填写登录信息
+        # 4. 填写登录信息
         wait.until(EC.presence_of_element_located((By.ID, "email"))).send_keys(os.getenv("USER_EMAIL"))
         driver.find_element(By.ID, "password").send_keys(os.getenv("USER_PASSWORD"))
         
-        # 4. 点击提交
+        # 5. 点击提交
         driver.find_element(By.XPATH, "//button[contains(., 'Sign In')]").click()
         
-        # 5. 判定登录成功：检查特定元素
+        # 6. 判定登录成功：检查特定元素
         target_xpath = "//p[contains(text(), 'Manage your servers, invoices and deployments all in one place.')]"
         
         try:
@@ -79,12 +80,12 @@ def main():
             success_msg = "登录失败或超时：未检测到特征元素。"
             print(success_msg)
 
-        # 6. 进入面板页
+        # 7. 进入面板页
         time.sleep(2)
         driver.get("https://www.vortexa.cloud/server/5878")
         time.sleep(3)
 
-        # 7. 最终截图并发送通知
+        # 8. 最终截图并发送通知
         driver.save_screenshot("result.png")
         send_telegram(f"{success_msg}\n已跳转至服务器详情页。", "result.png")
         
