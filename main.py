@@ -1,7 +1,7 @@
 import os
 import time
 import requests
-from selenium import webdriver
+from seleniumwire import webdriver  # 注意这里使用的是 seleniumwire 的 webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -25,28 +25,34 @@ def send_telegram(message, photo_path=None):
 def main():
     options = Options()
     
-    # 【已修正】无论是否在 GitHub Actions 中，都强制应用你指定的 SOCKS5 代理
-    proxy_server = "socks5://127.0.0.1:10808"
-    options.add_argument(f'--proxy-server={proxy_server}')
-    print(f"已强制配置代理: {proxy_server}")
-
     if os.getenv("GITHUB_ACTIONS"):
         options.add_argument("--headless")
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
         options.add_argument("--window-size=1920,1080")
     
-    driver = webdriver.Chrome(options=options)
+    # 【核心改动】使用 selenium-wire 的 options 强制绑定 SOCKS5 代理
+    # 如果代理需要账号密码，格式为：socks5://user:pass@127.0.0.1:10808
+    proxy_options = {
+        'proxy': {
+            'http': 'socks5://127.0.0.1:10808',
+            'https': 'socks5://127.0.0.1:10808',
+            'no_proxy': 'localhost,127.0.0.1'
+        }
+    }
+    
+    # 传入 seleniumwire 的 driver，并带上 proxy_options
+    driver = webdriver.Chrome(options=options, seleniumwire_options=proxy_options)
     wait = WebDriverWait(driver, 20)
 
     try:
         # 1. 进入登录页
         driver.get("https://www.vortexa.cloud/dashboard")
         
-        # 刚打开页面等待 3 秒让元素渲染，然后立刻截图发送到 Telegram 用于排查
+        # 检查是否成功加载，截图并通过 TG 确认
         time.sleep(3)
         driver.save_screenshot("init_load.png")
-        send_telegram("【排查】使用代理后，刚打开网站时的初始截图：", "init_load.png")
+        send_telegram("【排查】使用 Selenium-Wire 代理后，刚打开网站时的截图：", "init_load.png")
 
         # 2. 点击 Cookie 弹窗
         try:
