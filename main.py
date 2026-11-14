@@ -46,7 +46,7 @@ def main():
         time.sleep(2)
         ip_address = driver.find_element(By.TAG_NAME, "body").text
         print(f"当前浏览器出口 IP: {ip_address}")
-        send_telegram(f"【IP 检测】当前浏览器出口 IP 为: {ip_address}")
+        send_telegram(f"【VOR IP 检测】当前浏览器出口 IP 为: {ip_address}")
 
         # 2. 进入登录页
         driver.get("https://www.vortexa.cloud/dashboard")
