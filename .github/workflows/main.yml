@@ -14,7 +14,7 @@ jobs:
         with:
           python-version: '3.10'
       - name: Install dependencies
-        run: pip install selenium requests
+        run: pip install selenium-wire requests
 
       - name: 安装并启动代理 (Xray VLESS+XHTTP TLS)
         env:
