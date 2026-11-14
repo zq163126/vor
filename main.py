@@ -25,13 +25,10 @@ def send_telegram(message, photo_path=None):
 def main():
     options = Options()
     
-    # 保持你原有的代理配置
-    if not os.getenv("GITHUB_ACTIONS"):
-        proxy_server = "socks5://127.0.0.1:10808"
-        options.add_argument(f'--proxy-server={proxy_server}')
-        print("已启用本地代理配置")
-    else:
-        print("检测到 GitHub Actions 环境，不使用本地代理")
+    # 【已修正】无论是否在 GitHub Actions 中，都强制应用你指定的 SOCKS5 代理
+    proxy_server = "socks5://127.0.0.1:10808"
+    options.add_argument(f'--proxy-server={proxy_server}')
+    print(f"已强制配置代理: {proxy_server}")
 
     if os.getenv("GITHUB_ACTIONS"):
         options.add_argument("--headless")
@@ -49,7 +46,7 @@ def main():
         # 刚打开页面等待 3 秒让元素渲染，然后立刻截图发送到 Telegram 用于排查
         time.sleep(3)
         driver.save_screenshot("init_load.png")
-        send_telegram("【排查】刚打开网站时的初始截图：", "init_load.png")
+        send_telegram("【排查】使用代理后，刚打开网站时的初始截图：", "init_load.png")
 
         # 2. 点击 Cookie 弹窗
         try:
