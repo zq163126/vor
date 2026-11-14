@@ -14,7 +14,7 @@ jobs:
         with:
           python-version: '3.10'
       - name: Install dependencies
-        run: pip install selenium-wire requests
+        run: pip install selenium requests
 
       - name: 安装并启动代理 (Xray VLESS+XHTTP TLS)
         env:
@@ -124,4 +124,4 @@ jobs:
           USER_PASSWORD: ${{ secrets.USER_PASSWORD }}
           TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
           TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
-        run: python main.py
+        run: xvfb-run python main.py
